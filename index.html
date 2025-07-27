@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Jesus, Mark Pope, Trump, or Voltaire?</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f0f4f8; }
+    h1 { font-size: 2.5em; margin-bottom: 20px; }
+    .quote { font-size: 1.5em; font-style: italic; margin: 30px 0; }
+    button { font-size: 1.2em; padding: 10px 20px; margin: 10px; cursor: pointer; }
+    .result { margin-top: 20px; font-size: 1.2em; font-weight: bold; }
+    .score { margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+  <h1>Jesus, Mark Pope, Trump, or Voltaire?</h1>
+  <div class="quote" id="quote">Loading...</div>
+
+  <button onclick="guess('Jesus')">Jesus</button>
+  <button onclick="guess('Mark Pope')">Mark Pope</button>
+  <button onclick="guess('Donald Trump')">Donald Trump</button>
+  <button onclick="guess('Voltaire')">Voltaire 🇫🇷</button>
+
+  <div class="result" id="result"></div>
+  <div class="score" id="score">Score: 0 / 0</div>
+
+  <script>
+    const allQuotes = [
+      { text: "Blessed are the peacemakers, for they will be called children of God.", author: "Jesus" },
+      { text: "I am the way and the truth and the life. No one comes to the Father except through me.", author: "Jesus" },
+      { text: "Love your enemies and pray for those who persecute you.", author: "Jesus" },
+      { text: "Everybody’s jealous of where you are, nobody’s jealous of how you got there.", author: "Mark Pope" },
+      { text: "The magic that you’re looking for is in the work that you’re avoiding.", author: "Mark Pope" },
+      { text: "What do we do with frustration? We turn it into fight.", author: "Mark Pope" },
+      { text: "The referees actually have no power over whether we win or lose the game.", author: "Mark Pope" },
+      { text: "Operate your frontal cortex, not your limbic system.", author: "Mark Pope" },
+      { text: "We’re here to do hard things. That’s what we’re chasing.", author: "Mark Pope" },
+      { text: "I have the best words. I’m very highly educated.", author: "Donald Trump" },
+      { text: "Nobody knows the system better than me, which is why I alone can fix it.", author: "Donald Trump" },
+      { text: "Sorry losers and haters, but my IQ is one of the highest — and you all know it!", author: "Donald Trump" },
+      { text: "The beauty of me is that I’m very rich.", author: "Donald Trump" },
+      { text: "I will build a great wall — and nobody builds walls better than me.", author: "Donald Trump" },
+      { text: "Il faut cultiver notre jardin.", author: "Voltaire" },
+      { text: "Le doute est un état mental désagréable, mais la certitude est ridicule.", author: "Voltaire" },
+      { text: "J’ai décidé d’être heureux parce que c’est bon pour la santé.", author: "Voltaire" },
+      { text: "Ceux qui peuvent vous faire croire des absurdités peuvent vous faire commettre des atrocités.", author: "Voltaire" },
+      { text: "La liberté d’expression est la base de toute autre liberté.", author: "Voltaire" }
+    ];
+
+    let quotePool = [];
+    let currentQuote;
+    let correct = 0;
+    let total = 0;
+
+    function shuffleQuotes() {
+      quotePool = [...allQuotes];
+      for (let i = quotePool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [quotePool[i], quotePool[j]] = [quotePool[j], quotePool[i]];
+      }
+    }
+
+    function pickNextQuote() {
+      if (quotePool.length === 0) {
+        shuffleQuotes();
+      }
+      currentQuote = quotePool.pop();
+      document.getElementById("quote").innerText = `"${currentQuote.text}"`;
+      document.getElementById("result").innerText = "";
+    }
+
+    function guess(selection) {
+      total++;
+      if (selection === currentQuote.author) {
+        correct++;
+        document.getElementById("result").innerText = "✅ Correct!";
+      } else {
+        document.getElementById("result").innerText = `❌ Nope! It was ${currentQuote.author}.`;
+      }
+      document.getElementById("score").innerText = `Score: ${correct} / ${total}`;
+      setTimeout(pickNextQuote, 1500);
+    }
+
+    shuffleQuotes();
+    pickNextQuote();
+  </script>
+
+</body>
+</html>
