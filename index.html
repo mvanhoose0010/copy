@@ -1,90 +1,187 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Jesus, Mark Pope, Trump, or Voltaire?</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Line Batch Companion</title>
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f0f4f8; }
-    h1 { font-size: 2.5em; margin-bottom: 20px; }
-    .quote { font-size: 1.5em; font-style: italic; margin: 30px 0; }
-    button { font-size: 1.2em; padding: 10px 20px; margin: 10px; cursor: pointer; }
-    .result { margin-top: 20px; font-size: 1.2em; font-weight: bold; }
-    .score { margin-top: 10px; }
+    :root{--bg:#0f1724;--card:#0b1220;--muted:#94a3b8;--accent:#60a5fa;--accent-2:#38bdf8}
+    *{box-sizing:border-box}
+    body{font-family:Inter,system-ui,Segoe UI,Arial;background:linear-gradient(180deg,#071025 0%,#071827 100%);color:#e6eef8;padding:24px}
+    .app{max-width:1100px;margin:0 auto}
+    header{display:flex;gap:12px;align-items:center;margin-bottom:18px}
+    h1{font-size:20px;margin:0}
+    p.lead{margin:0;color:var(--muted);font-size:13px}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+    button{background:var(--accent);color:#07203a;border:0;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:600}
+    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+    textarea{width:100%;min-height:140px;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:linear-gradient(180deg,#031022,#051622);color:#dff2ff;resize:vertical}
+    .meta{display:flex;gap:12px;align-items:center;color:var(--muted);font-size:13px;margin-top:8px}
+    .table-wrap{margin-top:18px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:12px;border-radius:10px;overflow:auto}
+    table{border-collapse:collapse;width:100%}
+    td,th{padding:6px}
+    .cell-btn{display:inline-block;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:rgba(255,255,255,0.05);min-width:36px;cursor:pointer;color:#e6eef8;white-space:pre-wrap;word-break:break-word;max-width:200px}
+    .cell-btn:hover{outline:2px solid rgba(96,165,250,0.12)}
+    .toast{position:fixed;right:20px;bottom:20px;background:#052233;padding:10px 14px;border-radius:8px;color:#dff2ff;box-shadow:0 6px 18px rgba(2,6,23,0.6)}
+    .stats{margin-left:auto;color:var(--muted);font-size:13px}
+    .rownum{min-width:36px;color:var(--muted);text-align:right;padding-right:8px}
+    @media (max-width:600px){.rownum{display:none}}
   </style>
 </head>
 <body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>Line Batch Companion</h1>
+        <p class="lead">Paste tab-separated data and click any cell to copy it to your clipboard.</p>
+      </div>
+      <div class="stats" id="stats">Rows: 0 • Cols: 0 • Cells: 0 • Copies: 0</div>
+    </header>
 
-  <h1>Jesus, Mark Pope, Trump, or Voltaire?</h1>
-  <div class="quote" id="quote">Loading...</div>
+    <div>
+      <div class="controls">
+        <button id="pasteBtn">Paste from clipboard</button>
+        <button id="parseBtn" class="ghost">Parse textarea</button>
+        <button id="clearBtn" class="ghost">Clear</button>
+        <button id="copyAllBtn" class="ghost">Copy all cells (TSV)</button>
+      </div>
 
-  <button onclick="guess('Jesus')">Jesus</button>
-  <button onclick="guess('Mark Pope')">Mark Pope</button>
-  <button onclick="guess('Donald Trump')">Donald Trump</button>
-  <button onclick="guess('Voltaire')">Voltaire 🇫🇷</button>
+      <textarea id="input" placeholder="Paste tab-separated data here (or use 'Paste from clipboard')"></textarea>
+      <div class="meta">
+        <div style="color:var(--muted);">Tip: You can also press Ctrl+V into the textarea.</div>
+      </div>
 
-  <div class="result" id="result"></div>
-  <div class="score" id="score">Score: 0 / 0</div>
+      <div class="table-wrap" id="tableWrap" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" style="display:none">Copied</div>
 
   <script>
-    const allQuotes = [
-      { text: "Blessed are the peacemakers, for they will be called children of God.", author: "Jesus" },
-      { text: "I am the way and the truth and the life. No one comes to the Father except through me.", author: "Jesus" },
-      { text: "Love your enemies and pray for those who persecute you.", author: "Jesus" },
-      { text: "Everybody’s jealous of where you are, nobody’s jealous of how you got there.", author: "Mark Pope" },
-      { text: "The magic that you’re looking for is in the work that you’re avoiding.", author: "Mark Pope" },
-      { text: "What do we do with frustration? We turn it into fight.", author: "Mark Pope" },
-      { text: "The referees actually have no power over whether we win or lose the game.", author: "Mark Pope" },
-      { text: "Operate your frontal cortex, not your limbic system.", author: "Mark Pope" },
-      { text: "We’re here to do hard things. That’s what we’re chasing.", author: "Mark Pope" },
-      { text: "I have the best words. I’m very highly educated.", author: "Donald Trump" },
-      { text: "Nobody knows the system better than me, which is why I alone can fix it.", author: "Donald Trump" },
-      { text: "Sorry losers and haters, but my IQ is one of the highest — and you all know it!", author: "Donald Trump" },
-      { text: "The beauty of me is that I’m very rich.", author: "Donald Trump" },
-      { text: "I will build a great wall — and nobody builds walls better than me.", author: "Donald Trump" },
-      { text: "Il faut cultiver notre jardin.", author: "Voltaire" },
-      { text: "Le doute est un état mental désagréable, mais la certitude est ridicule.", author: "Voltaire" },
-      { text: "J’ai décidé d’être heureux parce que c’est bon pour la santé.", author: "Voltaire" },
-      { text: "Ceux qui peuvent vous faire croire des absurdités peuvent vous faire commettre des atrocités.", author: "Voltaire" },
-      { text: "La liberté d’expression est la base de toute autre liberté.", author: "Voltaire" }
-    ];
+    const pasteBtn = document.getElementById('pasteBtn');
+    const parseBtn = document.getElementById('parseBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const input = document.getElementById('input');
+    const tableWrap = document.getElementById('tableWrap');
+    const toast = document.getElementById('toast');
+    const stats = document.getElementById('stats');
+    const copyAllBtn = document.getElementById('copyAllBtn');
 
-    let quotePool = [];
-    let currentQuote;
-    let correct = 0;
-    let total = 0;
+    let copies = 0;
+    function updateStats(rows, cols){
+      const cells = rows * cols;
+      stats.textContent = `Rows: ${rows} • Cols: ${cols} • Cells: ${cells} • Copies: ${copies}`;
+    }
 
-    function shuffleQuotes() {
-      quotePool = [...allQuotes];
-      for (let i = quotePool.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [quotePool[i], quotePool[j]] = [quotePool[j], quotePool[i]];
+    async function tryPaste(){
+      try{
+        const text = await navigator.clipboard.readText();
+        input.value = text;
+        parseAndRender();
+      }catch(err){
+        alert('Unable to read clipboard. If using a browser that requires user gesture, paste into the textarea or allow clipboard access.');
       }
     }
 
-    function pickNextQuote() {
-      if (quotePool.length === 0) {
-        shuffleQuotes();
-      }
-      currentQuote = quotePool.pop();
-      document.getElementById("quote").innerText = `"${currentQuote.text}"`;
-      document.getElementById("result").innerText = "";
+    function clearAll(){
+      input.value = '';
+      tableWrap.innerHTML = '';
+      updateStats(0,0);
     }
 
-    function guess(selection) {
-      total++;
-      if (selection === currentQuote.author) {
-        correct++;
-        document.getElementById("result").innerText = "✅ Correct!";
-      } else {
-        document.getElementById("result").innerText = `❌ Nope! It was ${currentQuote.author}.`;
-      }
-      document.getElementById("score").innerText = `Score: ${correct} / ${total}`;
-      setTimeout(pickNextQuote, 1500);
+    function showToast(msg){
+      toast.textContent = msg;
+      toast.style.display = 'block';
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(()=> toast.style.display = 'none', 1200);
     }
 
-    shuffleQuotes();
-    pickNextQuote();
+    function escapeHtml(s){
+      return s.replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c]);
+    }
+
+    function parseAndRender(){
+      const raw = input.value.replace(/\r/g,'');
+      if(!raw.trim()){
+        tableWrap.innerHTML = '<div style="color:var(--muted)">No data to show.</div>';
+        updateStats(0,0);
+        return;
+      }
+
+      const rows = raw.split('\n').map(r=>r.split('\t'));
+      const nRows = rows.length;
+      const nCols = rows.reduce((m,r)=>Math.max(m,r.length),0);
+
+      // Build table
+      const table = document.createElement('table');
+      const tbody = document.createElement('tbody');
+
+      rows.forEach((r,ri)=>{
+        const tr = document.createElement('tr');
+        const rn = document.createElement('td');
+        rn.className = 'rownum';
+        rn.textContent = ri+1;
+        tr.appendChild(rn);
+        for(let ci=0;ci<nCols;ci++){
+          const td = document.createElement('td');
+          const val = (typeof r[ci] === 'undefined') ? '' : r[ci];
+          const btn = document.createElement('button');
+          btn.className = 'cell-btn';
+          btn.type = 'button';
+          btn.textContent = val || '—';
+          btn.title = val;
+          btn.dataset.value = val;
+          btn.addEventListener('click', async ()=>{
+            const text = btn.dataset.value || '';
+            try{
+              await navigator.clipboard.writeText(text);
+              copies++;
+              updateStats(nRows,nCols);
+              showToast(text ? `Copied: ${text}` : 'Copied (empty)');
+            }catch(err){
+              const ta = document.createElement('textarea');
+              ta.value = text;
+              document.body.appendChild(ta);
+              ta.select();
+              try{document.execCommand('copy'); copies++; updateStats(nRows,nCols); showToast('Copied (fallback)');}finally{document.body.removeChild(ta)}
+            }
+          });
+          td.appendChild(btn);
+          tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      tableWrap.innerHTML = '';
+      tableWrap.appendChild(table);
+      updateStats(nRows,nCols);
+    }
+
+    pasteBtn.addEventListener('click', tryPaste);
+    parseBtn.addEventListener('click', parseAndRender);
+    clearBtn.addEventListener('click', clearAll);
+
+    input.addEventListener('paste', ()=>{
+      setTimeout(parseAndRender, 50);
+    });
+
+    copyAllBtn.addEventListener('click', async ()=>{
+      const raw = input.value.replace(/\r/g,'');
+      try{
+        await navigator.clipboard.writeText(raw);
+        showToast('All cells copied (TSV)');
+      }catch(e){
+        showToast('Unable to copy all (try selecting manually)');
+      }
+    });
+
+    let typingTimer;
+    input.addEventListener('input', ()=>{
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(parseAndRender, 700);
+    });
+
+    updateStats(0,0);
   </script>
-
 </body>
 </html>
