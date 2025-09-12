@@ -22,6 +22,7 @@
     td,th{padding:6px}
     .cell-btn{display:inline-block;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:rgba(255,255,255,0.05);min-width:36px;cursor:pointer;color:#e6eef8;white-space:pre-wrap;word-break:break-word;max-width:200px}
     .cell-btn:hover{outline:2px solid rgba(96,165,250,0.12)}
+    .del-col-btn{background:var(--accent-2);color:#07203a;border:0;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:12px}
     .toast{position:fixed;right:20px;bottom:20px;background:#052233;padding:10px 14px;border-radius:8px;color:#dff2ff;box-shadow:0 6px 18px rgba(2,6,23,0.6)}
     .stats{margin-left:auto;color:var(--muted);font-size:13px}
     .rownum{min-width:36px;color:var(--muted);text-align:right;padding-right:8px}
@@ -68,6 +69,7 @@
     const copyAllBtn = document.getElementById('copyAllBtn');
 
     let copies = 0;
+
     function updateStats(rows, cols){
       const cells = rows * cols;
       stats.textContent = `Rows: ${rows} • Cols: ${cols} • Cells: ${cells} • Copies: ${copies}`;
@@ -79,7 +81,7 @@
         input.value = text;
         parseAndRender();
       }catch(err){
-        alert('Unable to read clipboard. If using a browser that requires user gesture, paste into the textarea or allow clipboard access.');
+        alert('Unable to read clipboard. Paste into the textarea or allow clipboard access.');
       }
     }
 
@@ -100,6 +102,16 @@
       return s.replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c]);
     }
 
+    function deleteColumn(colIndex){
+      const raw = input.value.replace(/\r/g,'');
+      if(!raw.trim()) return;
+
+      let rows = raw.split('\n').map(r => r.split('\t'));
+      rows = rows.map(r => r.filter((_,i) => i !== colIndex));
+      input.value = rows.map(r => r.join('\t')).join('\n');
+      parseAndRender();
+    }
+
     function parseAndRender(){
       const raw = input.value.replace(/\r/g,'');
       if(!raw.trim()){
@@ -112,10 +124,27 @@
       const nRows = rows.length;
       const nCols = rows.reduce((m,r)=>Math.max(m,r.length),0);
 
-      // Build table
       const table = document.createElement('table');
-      const tbody = document.createElement('tbody');
 
+      // --- New: thead with delete column buttons
+      const thead = document.createElement('thead');
+      const trh = document.createElement('tr');
+      const thEmpty = document.createElement('th');
+      trh.appendChild(thEmpty);
+      for(let ci=0;ci<nCols;ci++){
+        const th = document.createElement('th');
+        const btn = document.createElement('button');
+        btn.textContent = '🗑';
+        btn.className = 'del-col-btn';
+        btn.title = 'Delete column ' + (ci+1);
+        btn.addEventListener('click', ()=> deleteColumn(ci));
+        th.appendChild(btn);
+        trh.appendChild(th);
+      }
+      thead.appendChild(trh);
+      table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
       rows.forEach((r,ri)=>{
         const tr = document.createElement('tr');
         const rn = document.createElement('td');
@@ -152,6 +181,7 @@
         tbody.appendChild(tr);
       });
       table.appendChild(tbody);
+
       tableWrap.innerHTML = '';
       tableWrap.appendChild(table);
       updateStats(nRows,nCols);
@@ -161,10 +191,7 @@
     parseBtn.addEventListener('click', parseAndRender);
     clearBtn.addEventListener('click', clearAll);
 
-    input.addEventListener('paste', ()=>{
-      setTimeout(parseAndRender, 50);
-    });
-
+    input.addEventListener('paste', ()=> setTimeout(parseAndRender, 50));
     copyAllBtn.addEventListener('click', async ()=>{
       const raw = input.value.replace(/\r/g,'');
       try{
