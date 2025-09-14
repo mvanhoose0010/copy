@@ -1,4 +1,4 @@
-<!doctype html>
+<!doctype html> 
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -22,7 +22,7 @@
     td,th{padding:6px}
     .cell-btn{display:inline-block;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:rgba(255,255,255,0.05);min-width:36px;cursor:pointer;color:#e6eef8;white-space:pre-wrap;word-break:break-word;max-width:200px}
     .cell-btn:hover{outline:2px solid rgba(96,165,250,0.12)}
-    .del-col-btn{background:var(--accent-2);color:#07203a;border:0;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:12px}
+    .del-col-btn,.del-row-btn{background:var(--accent-2);color:#07203a;border:0;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:12px}
     .toast{position:fixed;right:20px;bottom:20px;background:#052233;padding:10px 14px;border-radius:8px;color:#dff2ff;box-shadow:0 6px 18px rgba(2,6,23,0.6)}
     .stats{margin-left:auto;color:var(--muted);font-size:13px}
     .rownum{min-width:36px;color:var(--muted);text-align:right;padding-right:8px}
@@ -42,8 +42,6 @@
     <div>
       <div class="controls">
         <button id="pasteBtn">Paste from clipboard</button>
-        <button id="parseBtn" class="ghost">Parse textarea</button>
-        <button id="clearBtn" class="ghost">Clear</button>
         <button id="copyAllBtn" class="ghost">Copy all cells (TSV)</button>
       </div>
 
@@ -60,8 +58,6 @@
 
   <script>
     const pasteBtn = document.getElementById('pasteBtn');
-    const parseBtn = document.getElementById('parseBtn');
-    const clearBtn = document.getElementById('clearBtn');
     const input = document.getElementById('input');
     const tableWrap = document.getElementById('tableWrap');
     const toast = document.getElementById('toast');
@@ -85,12 +81,6 @@
       }
     }
 
-    function clearAll(){
-      input.value = '';
-      tableWrap.innerHTML = '';
-      updateStats(0,0);
-    }
-
     function showToast(msg){
       toast.textContent = msg;
       toast.style.display = 'block';
@@ -98,16 +88,20 @@
       showToast._t = setTimeout(()=> toast.style.display = 'none', 1200);
     }
 
-    function escapeHtml(s){
-      return s.replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c]);
-    }
-
     function deleteColumn(colIndex){
       const raw = input.value.replace(/\r/g,'');
       if(!raw.trim()) return;
-
       let rows = raw.split('\n').map(r => r.split('\t'));
       rows = rows.map(r => r.filter((_,i) => i !== colIndex));
+      input.value = rows.map(r => r.join('\t')).join('\n');
+      parseAndRender();
+    }
+
+    function deleteRow(rowIndex){
+      const raw = input.value.replace(/\r/g,'');
+      if(!raw.trim()) return;
+      let rows = raw.split('\n').map(r => r.split('\t'));
+      rows.splice(rowIndex,1);
       input.value = rows.map(r => r.join('\t')).join('\n');
       parseAndRender();
     }
@@ -126,10 +120,10 @@
 
       const table = document.createElement('table');
 
-      // --- New: thead with delete column buttons
+      // --- thead with delete column buttons
       const thead = document.createElement('thead');
       const trh = document.createElement('tr');
-      const thEmpty = document.createElement('th');
+      const thEmpty = document.createElement('th'); 
       trh.appendChild(thEmpty);
       for(let ci=0;ci<nCols;ci++){
         const th = document.createElement('th');
@@ -147,10 +141,17 @@
       const tbody = document.createElement('tbody');
       rows.forEach((r,ri)=>{
         const tr = document.createElement('tr');
-        const rn = document.createElement('td');
-        rn.className = 'rownum';
-        rn.textContent = ri+1;
-        tr.appendChild(rn);
+
+        // --- New delete row button
+        const deltd = document.createElement('td');
+        const delBtn = document.createElement('button');
+        delBtn.textContent = '🗑';
+        delBtn.className = 'del-row-btn';
+        delBtn.title = 'Delete row ' + (ri+1);
+        delBtn.addEventListener('click', ()=> deleteRow(ri));
+        deltd.appendChild(delBtn);
+        tr.appendChild(deltd);
+
         for(let ci=0;ci<nCols;ci++){
           const td = document.createElement('td');
           const val = (typeof r[ci] === 'undefined') ? '' : r[ci];
@@ -188,8 +189,6 @@
     }
 
     pasteBtn.addEventListener('click', tryPaste);
-    parseBtn.addEventListener('click', parseAndRender);
-    clearBtn.addEventListener('click', clearAll);
 
     input.addEventListener('paste', ()=> setTimeout(parseAndRender, 50));
     copyAllBtn.addEventListener('click', async ()=>{
