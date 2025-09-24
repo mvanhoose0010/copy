@@ -1,4 +1,4 @@
-<!doctype html> 
+<!doctype html>  
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -43,6 +43,7 @@
       <div class="controls">
         <button id="pasteBtn">Paste from clipboard</button>
         <button id="copyAllBtn" class="ghost">Copy all cells (TSV)</button>
+        <button id="transposeBtn" class="ghost">Toggle Transpose</button>
       </div>
 
       <textarea id="input" placeholder="Paste tab-separated data here (or use 'Paste from clipboard')"></textarea>
@@ -63,8 +64,10 @@
     const toast = document.getElementById('toast');
     const stats = document.getElementById('stats');
     const copyAllBtn = document.getElementById('copyAllBtn');
+    const transposeBtn = document.getElementById('transposeBtn');
 
     let copies = 0;
+    let isTransposed = false; // toggle state
 
     function updateStats(rows, cols){
       const cells = rows * cols;
@@ -106,6 +109,20 @@
       parseAndRender();
     }
 
+    function transpose(matrix){
+      const nRows = matrix.length;
+      const nCols = matrix.reduce((m,r)=>Math.max(m,r.length),0);
+      const result = [];
+      for(let ci=0; ci<nCols; ci++){
+        const newRow = [];
+        for(let ri=0; ri<nRows; ri++){
+          newRow.push(matrix[ri][ci] || '');
+        }
+        result.push(newRow);
+      }
+      return result;
+    }
+
     function parseAndRender(){
       const raw = input.value.replace(/\r/g,'');
       if(!raw.trim()){
@@ -114,7 +131,11 @@
         return;
       }
 
-      const rows = raw.split('\n').map(r=>r.split('\t'));
+      let rows = raw.split('\n').map(r=>r.split('\t'));
+      if(isTransposed){
+        rows = transpose(rows);
+      }
+
       const nRows = rows.length;
       const nCols = rows.reduce((m,r)=>Math.max(m,r.length),0);
 
@@ -199,6 +220,11 @@
       }catch(e){
         showToast('Unable to copy all (try selecting manually)');
       }
+    });
+
+    transposeBtn.addEventListener('click', ()=>{
+      isTransposed = !isTransposed;
+      parseAndRender();
     });
 
     let typingTimer;
